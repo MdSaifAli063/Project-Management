@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard - Project Camp</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <div class="flex">
+        <h1>Dashboard</h1>
+        <button id="logoutBtn" class="right">Logout</button>
+      </div>
+      <div class="row mt-2">
+        <div class="card">
+          <h2>Create project (Admin only)</h2>
+          <input id="pName" placeholder="Project name" class="mt-1" />
+          <textarea id="pDesc" placeholder="Description" class="mt-1"></textarea>
+          <button id="createProjectBtn" class="mt-2">Create</button>
+          <div id="createMsg" class="mt-1"></div>
+        </div>
+        <div class="card">
+          <h2>Your projects</h2>
+          <div id="projects"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

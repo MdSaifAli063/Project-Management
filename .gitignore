@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Env
+.env
+.env.*
+
+# Logs
+logs
+*.log
+debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+/.idea/
+
+# Build output
+dist/
+build/
+
+# Public uploads (keep directory, ignore contents)
+public/images/uploads/*
+!public/images/uploads/.gitkeep

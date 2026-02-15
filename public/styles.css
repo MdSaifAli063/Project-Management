@@ -1,0 +1,153 @@
+:root {
+    --bg: #f7f8fb;
+    --card: #fff;
+    --accent: #0366d6;
+    --muted: #6b7280;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    background: var(--bg);
+    color: #111827;
+    -webkit-font-smoothing: antialiased;
+}
+
+.container {
+    max-width: 960px;
+    margin: 28px auto;
+    padding: 16px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.panel {
+    background: var(--card);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.forms {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.auth-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.auth-form input {
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+.auth-form button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#createForm {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#createForm input {
+    padding: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    flex: 1;
+    min-width: 160px;
+}
+
+#createForm button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#projectsList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.project {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    align-items: center;
+}
+
+.project .meta {
+    flex: 1;
+}
+
+.project .meta strong {
+    display: block;
+}
+
+.project .actions button {
+    margin-left: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    cursor: pointer;
+}
+
+.project .actions .delete {
+    border-color: #f87171;
+    color: #b91c1c;
+}
+
+.auth-box {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width:600px) {
+    .forms {
+        flex-direction: column;
+    }
+
+    .auth-form {
+        width: 100%;
+    }
+}

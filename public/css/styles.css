@@ -1,0 +1,52 @@
+:root {
+  --bg: #0b1020;
+  --panel: #141b2d;
+  --text: #e6e9f0;
+  --muted: #98a2b3;
+  --accent: #6ea8fe;
+  --accent-2: #00d4ff;
+  --danger: #f87171;
+  --success: #34d399;
+  --border: #243047;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 80% -20%, rgba(0,212,255,0.08), transparent 50%), var(--bg);
+  color: var(--text);
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.panel {
+  background: linear-gradient(180deg, rgba(20,27,45,0.8), rgba(20,27,45,0.6));
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; backdrop-filter: blur(8px);
+}
+h1, h2 { margin: 0 0 12px; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; color: var(--muted); }
+input, select, textarea, button {
+  background: #0f1629; color: var(--text); border: 1px solid var(--border);
+  padding: 10px 12px; border-radius: 10px; outline: none; width: 100%;
+}
+button {
+  cursor: pointer; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none; color: #08111f; font-weight: 700;
+}
+.row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: #0f1629; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); color: var(--muted); }
+.kv { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.mt-1 { margin-top: 8px; } .mt-2 { margin-top: 12px; } .mt-3 { margin-top: 16px; } .mt-4 { margin-top: 24px; }
+.flex { display: flex; gap: 12px; align-items: center; }
+.right { margin-left: auto; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
+.status-todo { color: #fbbf24; }
+.status-in_progress { color: #60a5fa; }
+.status-done { color: #34d399; }
