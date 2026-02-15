@@ -5,8 +5,30 @@ const api = {
     if (token) localStorage.setItem("pc_access", token);
     else localStorage.removeItem("pc_access");
   },
+  user: (() => {
+    try {
+      return JSON.parse(localStorage.getItem("pc_user") || "null");
+    } catch {
+      return null;
+    }
+  })(),
+  setUser(u) {
+    this.user = u;
+    if (u) localStorage.setItem("pc_user", JSON.stringify(u));
+    else localStorage.removeItem("pc_user");
+  },
   getToken() {
     return this.accessToken || localStorage.getItem("pc_access") || "";
+  },
+
+  async whoami() {
+    if (this.user) return this.user;
+    const r = await this.get("/api/v1/auth/current-user");
+    if (r.ok && r.data && r.data.user) {
+      this.setUser(r.data.user);
+      return r.data.user;
+    }
+    return null;
   },
 
   async request(path, { method = "GET", body, formData } = {}) {
@@ -79,6 +101,11 @@ const api = {
     }
     const data = await res.json();
     if (data?.accessToken) this.setToken(data.accessToken);
+    // optionally fetch current user after refresh
+    try {
+      const who = await this.get("/api/v1/auth/current-user");
+      if (who.ok && who.data && who.data.user) this.setUser(who.data.user);
+    } catch (e) {}
     return true;
   },
 };
