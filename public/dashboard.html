@@ -1,33 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - Project Camp</title>
-  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/styles-new.css" />
 </head>
+
 <body>
-  <div class="container">
-    <div class="panel">
-      <div class="flex">
-        <h1>Dashboard</h1>
-        <button id="logoutBtn" class="right">Logout</button>
+  <!-- Navigation -->
+  <header>
+    <nav class="container">
+      <div class="nav-brand">📋 Project Camp</div>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard.html">Projects</a>
       </div>
-      <div class="row mt-2">
-        <div class="card">
-          <h2>Create project (Admin only)</h2>
-          <input id="pName" placeholder="Project name" class="mt-1" />
-          <textarea id="pDesc" placeholder="Description" class="mt-1"></textarea>
-          <button id="createProjectBtn" class="mt-2">Create</button>
-          <div id="createMsg" class="mt-1"></div>
+      <div class="nav-right">
+        <span id="userInfo" style="color: var(--gray); margin-right: 16px;"></span>
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container mt-3">
+    <!-- Create Project Section (Admin Only) -->
+    <div style="margin-bottom: 40px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1>Your Projects</h1>
+        <button id="createBtn" class="btn btn-primary" style="display: none;">➕ New Project</button>
+      </div>
+
+      <div id="createForm" class="card" style="display: none; margin-bottom: 24px;">
+        <h3>Create New Project</h3>
+        <div class="form-group">
+          <label for="pName">Project Name</label>
+          <input id="pName" type="text" placeholder="e.g., Website Redesign" />
         </div>
-        <div class="card">
-          <h2>Your projects</h2>
-          <div id="projects"></div>
+        <div class="form-group">
+          <label for="pDesc">Description</label>
+          <textarea id="pDesc" placeholder="What is this project about?" rows="3"></textarea>
         </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="createProjectBtn" class="btn btn-primary">Create Project</button>
+          <button id="cancelBtn" class="btn btn-outline">Cancel</button>
+        </div>
+        <div id="createMsg" style="margin-top: 16px;"></div>
       </div>
     </div>
-  </div>
+
+    <!-- Projects Grid -->
+    <div id="projects" class="grid"></div>
+
+    <div id="noProjects" style="text-align: center; padding: 40px 16px; display: none;">
+      <p style="color: var(--gray); font-size: 16px;">No projects yet. Create your first project to get started!</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Project Camp. All rights reserved.</p>
+    </div>
+  </footer>
+
   <script src="/js/api.js"></script>
+  <script src="/js/navbar.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
+
 </html>
