@@ -1,27 +1,68 @@
-const notesDiv = document.getElementById("notes");
+const notesListDiv = document.getElementById("notes-list");
 const noteTitle = document.getElementById("noteTitle");
 const noteContent = document.getElementById("noteContent");
 const createNoteBtn = document.getElementById("createNoteBtn");
+const noteForm = document.getElementById("noteForm");
+const saveNoteBtn = document.getElementById("saveNoteBtn");
+const cancelNoteBtn = document.getElementById("cancelNoteBtn");
 const noteMsg = document.getElementById("noteMsg");
+
+let projectId;
+
+document.addEventListener("project:loaded", async (e) => {
+  projectId = e.detail.projectId;
+  const role = e.detail.role;
+
+  // Note creation allowed for project admins and above
+  if (role === "admin" || role === "project_admin") {
+    createNoteBtn.style.display = "inline-block";
+  }
+
+  loadNotes();
+});
+
+createNoteBtn.onclick = () => {
+  noteForm.style.display = "block";
+  noteTitle.focus();
+};
+
+cancelNoteBtn.onclick = () => {
+  noteForm.style.display = "none";
+  noteTitle.value = "";
+  noteContent.value = "";
+  noteMsg.textContent = "";
+};
 
 async function loadNotes() {
   const { ok, data } = await api.get(`/api/v1/notes/${projectId}`);
   if (!ok) {
-    notesDiv.innerHTML = "Failed to load notes.";
+    notesListDiv.innerHTML =
+      "<p style='color: var(--danger);'>Failed to load notes.</p>";
     return;
   }
-  notesDiv.innerHTML = "";
+  notesListDiv.innerHTML = "";
+
+  if (!data.notes || data.notes.length === 0) {
+    notesListDiv.innerHTML = "<p style='color: var(--gray);'>No notes yet.</p>";
+    return;
+  }
+
   data.notes.forEach((n) => {
     const el = document.createElement("div");
-    el.className = "card mt-1";
+    el.className = "card";
     el.innerHTML = `
-      <div class="flex"><strong>${n.title}</strong>
-        <button data-id="${n._id}" class="delNote right">Delete</button></div>
-      <div class="kv mt-1">${n.content || ""}</div>
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 8px 0;">${n.title}</h3>
+          <p style="color: var(--gray); margin: 0;">${n.content || "No content"}</p>
+        </div>
+        <button data-id="${n._id}" class="delNote btn btn-outline" style="color: var(--danger); white-space: nowrap; margin-left: 8px;">Delete</button>
+      </div>
     `;
-    notesDiv.appendChild(el);
+    notesListDiv.appendChild(el);
   });
-  notesDiv.querySelectorAll(".delNote").forEach((btn) => {
+
+  notesListDiv.querySelectorAll(".delNote").forEach((btn) => {
     btn.onclick = async () => {
       const id = btn.getAttribute("data-id");
       const { ok } = await api.del(`/api/v1/notes/${projectId}/n/${id}`);
@@ -30,31 +71,32 @@ async function loadNotes() {
   });
 }
 
-createNoteBtn.onclick = async () => {
-  const { ok, error } = await api.post(`/api/v1/notes/${projectId}`, {
-    title: noteTitle.value.trim(),
-    content: noteContent.value.trim(),
-  });
-  noteMsg.textContent = ok ? "Note created" : error?.message || "Error";
-  if (ok) {
-    noteTitle.value = "";
-    noteContent.value = "";
-    loadNotes();
-  }
-};
+saveNoteBtn.onclick = async () => {
+  const title = noteTitle.value.trim();
+  const content = noteContent.value.trim();
 
-// Wait for project to load then load notes and set create-permissions based on system admin
-document.addEventListener("project:loaded", async (e) => {
-  // project role is e.detail.role, but notes creation remains system-admin only per PRD
-  const user = await api.whoami();
-  if (!user) {
-    window.location.href = "/login.html";
+  if (!title) {
+    noteMsg.textContent = "Note title is required";
+    noteMsg.style.color = "var(--danger)";
     return;
   }
-  if (user.role !== "admin") {
-    if (createNoteBtn) createNoteBtn.style.display = "none";
-    if (noteTitle) noteTitle.style.display = "none";
-    if (noteContent) noteContent.style.display = "none";
+
+  const { ok, error } = await api.post(`/api/v1/notes/${projectId}`, {
+    title,
+    content,
+  });
+  if (ok) {
+    noteMsg.textContent = "Note created successfully!";
+    noteMsg.style.color = "var(--success)";
+    noteTitle.value = "";
+    noteContent.value = "";
+    noteForm.style.display = "none";
+    setTimeout(() => {
+      noteMsg.textContent = "";
+      loadNotes();
+    }, 500);
+  } else {
+    noteMsg.textContent = error?.message || "Error creating note";
+    noteMsg.style.color = "var(--danger)";
   }
-  loadNotes();
-});
+};
