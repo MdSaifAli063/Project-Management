@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard Test</h1>
+  
+  <div class="info">
+    <h3>Step 1: Check localStorage</h3>
+    <div id="step1"></div>
+  </div>
+
+  <div class="info">
+    <h3>Step 2: Load API</h3>
+    <div id="step2"></div>
+  </div>
+
+  <div class="info">
+    <h3>Step 3: Initialize Dashboard</h3>
+    <div id="step3"></div>
+  </div>
+
+  <div class="info">
+    <h3>Live Monitor</h3>
+    <pre id="monitor" style="background: white; border: 1px solid #ccc; padding: 10px; overflow-auto; max-height: 300px;"></pre>
+  </div>
+
+  <script>
+    const log = [];
+    function addLog(msg) {
+      log.push(new Date().toLocaleTimeString() + ': ' + msg);
+      document.getElementById('monitor').textContent = log.join('\n');
+    }
+
+    // Step 1: Check localStorage
+    addLog('Checking localStorage...');
+    const token = localStorage.getItem('pc_access');
+    const user = localStorage.getItem('pc_user');
+    
+    document.getElementById('step1').innerHTML = `
+      <p><strong>Token:</strong> ${token ? '✓ Found' : '✗ Not found'} ${token ? ' (first 30 chars: ' + token.substring(0, 30) + '...)' : ''}</p>
+      <p><strong>User:</strong> ${user ? '✓ Found' : '✗ Not found'}</p>
+      ${user ? '<p><strong>User Details:</strong> ' + user + '</p>' : ''}
+    `;
+    addLog('localStorage check complete');
+  </script>
+
+  <!-- Load API -->
+  <script src="/js/api.js"></script>
+  
+  <script>
+    addLog('api.js loaded');
+    addLog('window.api exists: ' + (typeof window.api !== 'undefined'));
+    
+    document.getElementById('step2').innerHTML = `
+      <p><strong>api.accessToken:</strong> ${window.api?.accessToken ? '✓ Set' : '✗ Not set'}</p>
+      <p><strong>api.user:</strong> ${window.api?.user ? '✓ Set (' + window.api.user.name + ')' : '✗ Not set'}</p>
+      <p><strong>api.getToken():</strong> ${window.api?.getToken() ? '✓ Returns token' : '✗ No token'}</p>
+    `;
+  </script>
+
+  <!-- Load navbar -->
+  <script src="/js/navbar.js"></script>
+
+  <!-- Simulate dashboard init -->
+  <script>
+    addLog('Dashboard init starting...');
+    
+    (async function initDashboard() {
+      addLog('initRole() called');
+      
+      const token = localStorage.getItem("pc_access");
+      addLog('Token check: ' + (token ? 'found' : 'NOT found'));
+      
+      if (!token) {
+        addLog('ERROR: No token, would redirect to login');
+        document.getElementById('step3').innerHTML = '<p class="error">NO TOKEN - Would redirect to login.html</p>';
+        return;
+      }
+
+      addLog('Token found, trying to get user...');
+      let user = null;
+      try {
+        user = await Promise.race([
+          window.api?.whoami ? window.api.whoami() : Promise.resolve(null),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+        addLog('User from API: ' + (user ? user.name : 'null'));
+      } catch (e) {
+        addLog('whoami() failed: ' + e.message);
+        user = { name: "User", role: "member" };
+        addLog('Using fallback user');
+      }
+
+      if (user) {
+        addLog('SUCCESS: Dashboard loaded for ' + user.name);
+        document.getElementById('step3').innerHTML = `
+          <p class="success">✓ Dashboard initialized</p>
+          <p><strong>User:</strong> ${user.name} (${user.role})</p>
+        `;
+      } else {
+        addLog('ERROR: No user returned');
+        document.getElementById('step3').innerHTML = '<p class="error">No user - Dashboard would not initialize</p>';
+      }
+    })();
+  </script>
+</body>
+</html>
