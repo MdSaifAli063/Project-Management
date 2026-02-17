@@ -3,6 +3,17 @@ const projectId = urlParams.get("id");
 
 const projectName = document.getElementById("projectName");
 const projectDesc = document.getElementById("projectDesc");
+const projRole = document.getElementById("projRole");
+const memberCount = document.getElementById("memberCount");
+const logoutBtn = document.getElementById("logoutBtn");
+const userInfo = document.getElementById("userInfo");
+
+logoutBtn.onclick = async () => {
+  await api.post("/api/v1/auth/logout");
+  api.setToken(null);
+  api.setUser(null);
+  window.location.href = "/";
+};
 
 async function loadProject() {
   const user = await api.whoami();
@@ -10,6 +21,8 @@ async function loadProject() {
     window.location.href = "/login.html";
     return;
   }
+
+  userInfo.textContent = `${user.name} (${user.role})`;
 
   const { ok, data } = await api.get(`/api/v1/projects/${projectId}`);
   if (!ok) {
@@ -19,6 +32,7 @@ async function loadProject() {
   const p = data.project;
   projectName.textContent = p.name;
   projectDesc.textContent = p.description || "";
+  memberCount.textContent = `👥 ${p.memberCount || 0} members`;
 
   // determine project-scoped role for current user
   let role = null;
@@ -31,6 +45,16 @@ async function loadProject() {
   } catch (e) {
     role = null;
   }
+
+  // Display role badges
+  projRole.textContent = `Your Role: ${role || "Viewer"}`;
+  projRole.style.background =
+    role === "project_admin"
+      ? "var(--primary)"
+      : role === "member"
+        ? "var(--secondary)"
+        : "var(--gray)";
+  projRole.style.color = "white";
 
   // publish project loaded event for other modules
   window.CURRENT_PROJECT = p;
