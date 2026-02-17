@@ -1,33 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Project Camp</title>
-  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/styles-new.css" />
 </head>
+
 <body>
-  <div class="container">
-    <div class="panel">
-      <h1>Welcome back</h1>
-      <div class="row">
-        <div>
-          <label>Email</label>
-          <input id="email" placeholder="you@example.com" />
-        </div>
-        <div>
-          <label>Password</label>
-          <input id="password" type="password" placeholder="••••••••" />
-        </div>
+  <!-- Navigation -->
+  <header>
+    <nav class="container">
+      <div class="nav-brand">📋 Project Camp</div>
+      <div class="nav-links">
+        <a href="/">Home</a>
       </div>
-      <div class="mt-2 flex">
-        <button id="loginBtn">Login</button>
-        <button id="forgotBtn" class="right">Forgot password</button>
+      <div class="nav-right">
+        <a href="/register.html" class="btn btn-primary">Sign Up</a>
       </div>
-      <p class="mt-2">No account? <a href="/register.html">Register</a></p>
-      <div id="msg" class="mt-2"></div>
+    </nav>
+  </header>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1>Welcome Back!</h1>
+      <p class="subtitle">Sign in to your Project Camp account</p>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input id="email" type="email" placeholder="you@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="••••••••" />
+      </div>
+
+      <button id="loginBtn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Sign In</button>
+      <button id="forgotBtn" class="btn btn-outline" style="width: 100%; margin-top: 12px;">Forgot Password?</button>
+
+      <div id="msg" style="margin-top: 16px; text-align: center;"></div>
+
+      <div class="auth-link">
+        No account? <a href="/register.html">Create one</a>
+      </div>
     </div>
   </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Project Camp. All rights reserved.</p>
+    </div>
+  </footer>
+
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
 </body>
+
 </html>
