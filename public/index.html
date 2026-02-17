@@ -1,23 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <title>Project Camp</title>
-  <link rel="stylesheet" href="/css/styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Camp - Collaborative Project Management</title>
+  <link rel="stylesheet" href="/styles-new.css" />
 </head>
+
 <body>
-  <div class="container">
-    <div class="panel">
-      <h1>Project Camp</h1>
-      <p class="kv">A clean, fast way to manage projects, tasks, subtasks, and notes.</p>
-      <div class="mt-3 flex">
-        <a href="/register.html"><button>Register</button></a>
-        <a href="/login.html"><button>Login</button></a>
-        <a href="/dashboard.html" class="right"><span class="badge">Go to dashboard</span></a>
+  <!-- Navigation -->
+  <header>
+    <nav class="container">
+      <div class="nav-brand">📋 Project Camp</div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="/#contact">Contact</a>
       </div>
-      <hr />
-      <blockquote>Tip: After registering, check your email to verify before logging in.</blockquote>
+      <div class="nav-right">
+        <a href="/login.html" class="btn btn-outline">Login</a>
+        <a href="/register.html" class="btn btn-primary">Sign Up</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Manage Projects Like a Pro</h1>
+      <p>Collaborate, organize, and deliver projects efficiently with Project Camp. The modern solution for team project
+        management.</p>
+      <div class="hero-buttons">
+        <a href="/register.html" class="btn btn-primary">Get Started Free</a>
+        <a href="/login.html" class="btn" style="background: white; color: #3b82f6;">Sign In</a>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="container mt-3">
+    <div class="section-title">Why Choose Project Camp?</div>
+    <div class="grid">
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">🚀</div>
+        <h3>Easy to Use</h3>
+        <p style="color: var(--gray); font-size: 14px;">Intuitive interface designed for teams of all sizes. Get started
+          in minutes, not hours.</p>
+      </div>
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">👥</div>
+        <h3>Team Collaboration</h3>
+        <p style="color: var(--gray); font-size: 14px;">Work together seamlessly. Assign tasks, track progress, and
+          communicate in one place.</p>
+      </div>
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">📊</div>
+        <h3>Real-time Updates</h3>
+        <p style="color: var(--gray); font-size: 14px;">See changes instantly. Stay synchronized with your team at all
+          times.</p>
+      </div>
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">🔒</div>
+        <h3>Secure & Reliable</h3>
+        <p style="color: var(--gray); font-size: 14px;">Enterprise-grade security. Your data is safe with us.</p>
+      </div>
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">📝</div>
+        <h3>Task Management</h3>
+        <p style="color: var(--gray); font-size: 14px;">Organize tasks, subtasks, and notes. Keep everything in control.
+        </p>
+      </div>
+      <div class="card">
+        <div style="font-size: 32px; margin-bottom: 16px;">⚡</div>
+        <h3>Lightning Fast</h3>
+        <p style="color: var(--gray); font-size: 14px;">Built for performance. Instant loading and seamless
+          interactions.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section
+    style="background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%); color: white; padding: 60px 16px; margin-top: 60px; text-align: center;">
+    <div class="container">
+      <h2 style="font-size: 32px; margin-bottom: 16px;">Ready to Get Started?</h2>
+      <p style="font-size: 16px; margin-bottom: 30px; opacity: 0.9;">Join thousands of teams managing projects with
+        Project Camp.</p>
+      <a href="/register.html" class="btn" style="background: white; color: var(--primary); padding: 12px 24px;">Create
+        Free Account</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Project Camp. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of
+          Service</a></p>
+    </div>
+  </footer>
+  <!-- Navbar only loaded on authenticated pages -->
 </body>
+
 </html>
