@@ -1,63 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project - Project Camp</title>
-  <link rel="stylesheet" href="/css/styles.css" />
-</head>
-<body>
-  <div class="container">
-    <div class="panel">
-      <div class="flex">
-        <h1 id="projectName">Project</h1>
-        <a class="right" href="/dashboard.html"><span class="badge">Back to dashboard</span></a>
-      </div>
-      <p id="projectDesc" class="kv"></p>
+  <link rel="stylesheet" href="/styles-new.css" />
+  <style>
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
 
-      <div class="grid mt-3">
-        <div class="card">
-          <h2>Members</h2>
-          <div id="members"></div>
-          <hr />
-          <h3>Add member (Admin)</h3>
-          <input id="memEmail" placeholder="user@example.com" class="mt-1" />
-          <select id="memRole" class="mt-1">
-            <option value="member">Member</option>
-            <option value="project_admin">Project Admin</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button id="addMemberBtn" class="mt-1">Add</button>
-          <div id="memMsg" class="mt-1"></div>
-        </div>
-        <div class="card">
-          <h2>Tasks</h2>
-          <div id="tasks"></div>
-          <hr />
-          <h3>Create task (Admin/Project Admin)</h3>
-          <input id="taskTitle" placeholder="Task title" class="mt-1" />
-          <textarea id="taskDesc" placeholder="Description" class="mt-1"></textarea>
-          <input id="taskAssignee" placeholder="Assignee userId (optional)" class="mt-1" />
-          <input id="taskFiles" type="file" multiple class="mt-1" />
-          <button id="createTaskBtn" class="mt-1">Create</button>
-          <div id="taskMsg" class="mt-1"></div>
-        </div>
-        <div class="card">
-          <h2>Notes</h2>
-          <div id="notes"></div>
-          <hr />
-          <h3>Create note (Admin)</h3>
-          <input id="noteTitle" placeholder="Note title" class="mt-1" />
-          <textarea id="noteContent" placeholder="Write note..." class="mt-1"></textarea>
-          <button id="createNoteBtn" class="mt-1">Create</button>
-          <div id="noteMsg" class="mt-1"></div>
-        </div>
+    .tab-btn {
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray);
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-btn:hover {
+      color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navigation -->
+  <header>
+    <nav class="container">
+      <div class="nav-brand">📋 Project Camp</div>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard.html">Projects</a>
+      </div>
+      <div class="nav-right">
+        <span id="userInfo" style="color: var(--gray); margin-right: 16px;"></span>
+        <button id="logoutBtn" class="btn btn-outline">Logout</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container mt-3">
+    <!-- Project Header -->
+    <div style="margin-bottom: 32px;">
+      <a href="/dashboard.html"
+        style="color: var(--primary); text-decoration: none; margin-bottom: 16px; display: inline-block;">← Back to
+        Projects</a>
+      <h1 id="projectName"></h1>
+      <p id="projectDesc" style="color: var(--gray); font-size: 16px; margin-top: 8px;"></p>
+      <div style="margin-top: 12px;">
+        <span id="projRole" class="badge"></span>
+        <span id="memberCount" class="badge" style="background: var(--secondary); color: white;"></span>
       </div>
     </div>
-  </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tasks">📝 Tasks</button>
+      <button class="tab-btn" data-tab="notes">📌 Notes</button>
+      <button class="tab-btn" data-tab="members">👥 Members</button>
+    </div>
+
+    <!-- Tasks Tab -->
+    <div id="tasks" class="tab-content active">
+      <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2>Tasks</h2>
+          <button id="createTaskBtn" class="btn btn-primary" style="display: none;">➕ New Task</button>
+        </div>
+        <div id="taskForm" class="card" style="display: none; margin-bottom: 24px;">
+          <h3>Create Task</h3>
+          <div class="form-group">
+            <label for="taskTitle">Title</label>
+            <input id="taskTitle" type="text" placeholder="Task title" />
+          </div>
+          <div class="form-group">
+            <label for="taskDesc">Description</label>
+            <textarea id="taskDesc" placeholder="Task description" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="taskAssignee">Assignee (optional)</label>
+            <input id="taskAssignee" type="text" placeholder="Assignee userId" />
+          </div>
+          <div class="form-group">
+            <label for="taskFiles">Attachments</label>
+            <input id="taskFiles" type="file" multiple />
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="saveTaskBtn" class="btn btn-primary">Create Task</button>
+            <button id="cancelTaskBtn" class="btn btn-outline">Cancel</button>
+          </div>
+          <div id="taskMsg" style="margin-top: 12px;"></div>
+        </div>
+      </div>
+      <div id="tasks-list" class="grid"></div>
+    </div>
+
+    <!-- Notes Tab -->
+    <div id="notes" class="tab-content">
+      <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2>Notes</h2>
+          <button id="createNoteBtn" class="btn btn-primary" style="display: none;">➕ New Note</button>
+        </div>
+        <div id="noteForm" class="card" style="display: none; margin-bottom: 24px;">
+          <h3>Create Note</h3>
+          <div class="form-group">
+            <label for="noteTitle">Title</label>
+            <input id="noteTitle" type="text" placeholder="Note title" />
+          </div>
+          <div class="form-group">
+            <label for="noteContent">Content</label>
+            <textarea id="noteContent" placeholder="Your notes..." rows="4"></textarea>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="saveNoteBtn" class="btn btn-primary">Create Note</button>
+            <button id="cancelNoteBtn" class="btn btn-outline">Cancel</button>
+          </div>
+          <div id="noteMsg" style="margin-top: 12px;"></div>
+        </div>
+      </div>
+      <div id="notes-list" class="grid"></div>
+    </div>
+
+    <!-- Members Tab -->
+    <div id="members" class="tab-content">
+      <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2>Team Members</h2>
+          <button id="addMemberBtn" class="btn btn-primary" style="display: none;">➕ Add Member</button>
+        </div>
+        <div id="memberForm" class="card" style="display: none; margin-bottom: 24px;">
+          <h3>Add Team Member</h3>
+          <div class="form-group">
+            <label for="memEmail">Email</label>
+            <input id="memEmail" type="email" placeholder="member@example.com" />
+          </div>
+          <div class="form-group">
+            <label for="memRole">Role</label>
+            <select id="memRole">
+              <option value="member">Member</option>
+              <option value="project_admin">Project Admin</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="saveMemberBtn" class="btn btn-primary">Add Member</button>
+            <button id="cancelMemberBtn" class="btn btn-outline">Cancel</button>
+          </div>
+          <div id="memMsg" style="margin-top: 12px;"></div>
+        </div>
+      </div>
+      <div id="members-list" class="grid"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Project Camp. All rights reserved.</p>
+    </div>
+  </footer>
+
   <script src="/js/api.js"></script>
+  <script src="/js/navbar.js"></script>
   <script src="/js/project.js"></script>
   <script src="/js/tasks.js"></script>
   <script src="/js/notes.js"></script>
   <script src="/js/members.js"></script>
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        // Show selected tab
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+        this.classList.add('active');
+      });
+    });
+  </script>
 </body>
+
 </html>
