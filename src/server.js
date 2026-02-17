@@ -75,8 +75,8 @@ app.use(errorHandler);
 
 // Start
 const PORT = process.env.PORT || 5000;
-connectDB().then(() => {
-  app.listen(PORT, () =>
-    console.log(`Server running on http://localhost:${PORT}`),
-  );
-});
+// Connect to DB in background; server starts regardless
+connectDB().catch((err) => console.error("Database init failed:", err.message));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`),
+);
