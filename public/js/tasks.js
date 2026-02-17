@@ -1,57 +1,156 @@
-const tasksDiv = document.getElementById("tasks");
+const tasksListDiv = document.getElementById("tasks-list");
 const taskTitle = document.getElementById("taskTitle");
 const taskDesc = document.getElementById("taskDesc");
 const taskAssignee = document.getElementById("taskAssignee");
 const taskFiles = document.getElementById("taskFiles");
 const createTaskBtn = document.getElementById("createTaskBtn");
+const taskForm = document.getElementById("taskForm");
+const saveTaskBtn = document.getElementById("saveTaskBtn");
+const cancelTaskBtn = document.getElementById("cancelTaskBtn");
 const taskMsg = document.getElementById("taskMsg");
+
+let projectId;
+
+document.addEventListener("project:loaded", async (e) => {
+  projectId = e.detail.projectId;
+  const role = e.detail.role;
+
+  // Show create task button only for admin/project_admin
+  if (role === "admin" || role === "project_admin") {
+    createTaskBtn.style.display = "inline-block";
+  }
+
+  // Load tasks and then apply UI restrictions based on role
+  await loadTasks();
+
+  if (!["admin", "project_admin"].includes(role)) {
+    // hide create controls for non-admins
+    const createBtnEl = document.getElementById("createTaskBtn");
+    if (createBtnEl) createBtnEl.style.display = "none";
+
+    // hide inputs inside the form if present
+    ["taskTitle", "taskDesc", "taskAssignee", "taskFiles"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
+
+    // hide per-task admin controls in the rendered list
+    tasksListDiv
+      .querySelectorAll(".addSub, .delSub, .saveTask, .delTask")
+      .forEach((b) => {
+        b.style.display = "none";
+      });
+  }
+});
+
+createTaskBtn.onclick = () => {
+  taskForm.style.display = "block";
+  taskTitle.focus();
+};
+
+cancelTaskBtn.onclick = () => {
+  taskForm.style.display = "none";
+  taskTitle.value = "";
+  taskDesc.value = "";
+  taskAssignee.value = "";
+  taskFiles.value = "";
+  taskMsg.textContent = "";
+};
 
 async function loadTasks() {
   const { ok, data } = await api.get(`/api/v1/tasks/${projectId}`);
   if (!ok) {
-    tasksDiv.innerHTML = "Failed to load tasks.";
+    tasksListDiv.innerHTML =
+      "<p style='color: var(--danger);'>Failed to load tasks.</p>";
     return;
   }
-  tasksDiv.innerHTML = "";
+  tasksListDiv.innerHTML = "";
+
+  if (!data.tasks || data.tasks.length === 0) {
+    tasksListDiv.innerHTML =
+      "<p style='color: var(--gray);'>No tasks yet. Create one to get started.</p>";
+    return;
+  }
+
   data.tasks.forEach((t) => {
+    const statusColor =
+      t.status === "done"
+        ? "var(--success)"
+        : t.status === "in_progress"
+          ? "var(--primary)"
+          : "var(--gray)";
+
     const el = document.createElement("div");
-    el.className = "card mt-1";
+    el.className = "card";
     el.innerHTML = `
-      <div class="flex"><strong>${t.title}</strong>
-        <span class="right status-${t.status}">${t.status}</span></div>
-      <div class="kv mt-1">${t.description || ""}</div>
-      <div class="kv mt-1">Assignee: ${t.assignee ? t.assignee.name || t.assignee._id : "—"}</div>
-      <div class="mt-1">${(t.attachments || []).map((a) => `<a href="${a.url}" target="_blank">${a.originalName}</a>`).join(" ")}</div>
-      <div class="mt-1">
-        <strong>Subtasks:</strong>
-        <ul>${(t.subtasks || [])
-          .map(
-            (st) => `<li>${st.title} ${st.isCompleted ? "✅" : ""} 
-        <button data-sub="${st._id}" class="toggleSub">${st.isCompleted ? "Unmark" : "Mark done"}</button>
-        <button data-del="${st._id}" class="delSub">Delete</button>
-        </li>`,
-          )
-          .join("")}</ul>
-        <div class="flex mt-1">
-          <input placeholder="New subtask title" class="subTitle" />
-          <button data-task="${t._id}" class="addSub">Add</button>
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div>
+          <h3 style="margin: 0 0 4px 0;">${t.title}</h3>
+          <span class="badge" style="background: ${statusColor}; color: white;">${t.status}</span>
         </div>
       </div>
-      <div class="flex mt-1">
-        <select class="statusSel">
-          <option value="todo" ${t.status === "todo" ? "selected" : ""}>Todo</option>
+      
+      <p style="color: var(--gray); margin: 8px 0;">${t.description || "No description"}</p>
+      
+      <p style="font-size: 12px; color: var(--gray); margin: 8px 0;">
+        👤 Assignee: ${t.assignee ? t.assignee.name || t.assignee._id : "Unassigned"}
+      </p>
+      
+      ${
+        (t.attachments || []).length > 0
+          ? `
+        <div style="margin: 8px 0;">
+          <strong style="font-size: 12px;">Attachments:</strong>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+            ${(t.attachments || []).map((a) => `<a href="${a.url}" target="_blank" class="badge" style="background: var(--primary); color: white; text-decoration: none;">${a.originalName}</a>`).join("")}
+          </div>
+        </div>
+      `
+          : ""
+      }
+      
+      <div style="margin: 12px 0;">
+        <strong style="font-size: 12px; color: var(--gray);">Subtasks:</strong>
+        <div style="margin-top: 8px;">
+          ${
+            (t.subtasks || []).length > 0
+              ? (t.subtasks || [])
+                  .map(
+                    (st) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--surface); border-radius: 4px; margin-bottom: 4px;">
+              <span>${st.title} ${st.isCompleted ? "✅" : ""}</span>
+              <div style="display: flex; gap: 4px;">
+                <button data-sub="${st._id}" class="toggleSub btn btn-outline" style="padding: 4px 8px; font-size: 12px;">${st.isCompleted ? "Unmark" : "Mark done"}</button>
+                <button data-del="${st._id}" class="delSub btn btn-outline" style="padding: 4px 8px; font-size: 12px; color: var(--danger);">Delete</button>
+              </div>
+            </div>
+          `,
+                  )
+                  .join("")
+              : "<p style='color: var(--gray); font-size: 12px;'>No subtasks</p>"
+          }
+          <div style="display: flex; gap: 4px; margin-top: 8px;">
+            <input placeholder="New subtask" class="subTitle" style="flex: 1; padding: 6px;" />
+            <button data-task="${t._id}" class="addSub btn btn-primary" style="padding: 6px 12px; font-size: 12px;">Add</button>
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <select class="statusSel" style="flex: 1; padding: 6px;">
+          <option value="todo" ${t.status === "todo" ? "selected" : ""}>To Do</option>
           <option value="in_progress" ${t.status === "in_progress" ? "selected" : ""}>In Progress</option>
           <option value="done" ${t.status === "done" ? "selected" : ""}>Done</option>
         </select>
-        <button data-task="${t._id}" class="saveTask">Save</button>
-        <button data-task="${t._id}" class="delTask right">Delete</button>
+        <button data-task="${t._id}" class="saveTask btn btn-primary">Save</button>
+        <button data-task="${t._id}" class="delTask btn btn-outline" style="color: var(--danger);">Delete</button>
       </div>
     `;
-    tasksDiv.appendChild(el);
+    tasksListDiv.appendChild(el);
   });
 
   // Bind events
-  tasksDiv.querySelectorAll(".addSub").forEach((btn) => {
+  tasksListDiv.querySelectorAll(".addSub").forEach((btn) => {
     btn.onclick = async () => {
       const taskId = btn.getAttribute("data-task");
       const titleInput = btn.parentElement.querySelector(".subTitle");
@@ -64,24 +163,24 @@ async function loadTasks() {
       if (ok) loadTasks();
     };
   });
-  tasksDiv.querySelectorAll(".toggleSub").forEach((btn) => {
+  tasksListDiv.querySelectorAll(".toggleSub").forEach((btn) => {
     btn.onclick = async () => {
       const subId = btn.getAttribute("data-sub");
-      const markDone = btn.textContent.includes("done");
+      const isCurrentlyCompleted = btn.textContent.includes("Unmark");
       const { ok } = await api.put(`/api/v1/tasks/st/${subId}`, {
-        isCompleted: markDone,
+        isCompleted: !isCurrentlyCompleted,
       });
       if (ok) loadTasks();
     };
   });
-  tasksDiv.querySelectorAll(".delSub").forEach((btn) => {
+  tasksListDiv.querySelectorAll(".delSub").forEach((btn) => {
     btn.onclick = async () => {
       const subId = btn.getAttribute("data-del");
       const { ok } = await api.del(`/api/v1/tasks/st/${subId}`);
       if (ok) loadTasks();
     };
   });
-  tasksDiv.querySelectorAll(".saveTask").forEach((btn) => {
+  tasksListDiv.querySelectorAll(".saveTask").forEach((btn) => {
     btn.onclick = async () => {
       const taskId = btn.getAttribute("data-task");
       const status = btn.parentElement.querySelector(".statusSel").value;
@@ -91,7 +190,7 @@ async function loadTasks() {
       if (ok) loadTasks();
     };
   });
-  tasksDiv.querySelectorAll(".delTask").forEach((btn) => {
+  tasksListDiv.querySelectorAll(".delTask").forEach((btn) => {
     btn.onclick = async () => {
       const taskId = btn.getAttribute("data-task");
       const { ok } = await api.del(`/api/v1/tasks/${projectId}/t/${taskId}`);
@@ -100,54 +199,40 @@ async function loadTasks() {
   });
 }
 
-createTaskBtn.onclick = async () => {
+saveTaskBtn.onclick = async () => {
+  const title = taskTitle.value.trim();
+  const description = taskDesc.value.trim();
+
+  if (!title) {
+    taskMsg.textContent = "Task title is required";
+    taskMsg.style.color = "var(--danger)";
+    return;
+  }
+
   const fd = new FormData();
-  fd.append("title", taskTitle.value.trim());
-  fd.append("description", taskDesc.value.trim());
+  fd.append("title", title);
+  fd.append("description", description);
   if (taskAssignee.value.trim())
     fd.append("assignee", taskAssignee.value.trim());
   for (const f of taskFiles.files) fd.append("attachments", f);
 
   const { ok, error } = await api.upload(`/api/v1/tasks/${projectId}`, fd);
-  taskMsg.textContent = ok ? "Task created" : error?.message || "Error";
   if (ok) {
+    taskMsg.textContent = "Task created successfully!";
+    taskMsg.style.color = "var(--success)";
     taskTitle.value = "";
     taskDesc.value = "";
     taskAssignee.value = "";
     taskFiles.value = "";
-    loadTasks();
+    taskForm.style.display = "none";
+    setTimeout(() => {
+      taskMsg.textContent = "";
+      loadTasks();
+    }, 500);
+  } else {
+    taskMsg.textContent = error?.message || "Error creating task";
+    taskMsg.style.color = "var(--danger)";
   }
 };
 
-// Wait for project to load and then load tasks and apply project-scoped permissions
-document.addEventListener("project:loaded", (e) => {
-  const role = e.detail.role; // project role: 'admin'|'project_admin'|'member' or null
-  // create task allowed for admin and project_admin within this project
-  if (!["admin", "project_admin"].includes(role)) {
-    const createBtn = document.getElementById("createTaskBtn");
-    if (createBtn) createBtn.style.display = "none";
-    ["taskTitle", "taskDesc", "taskAssignee", "taskFiles"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "none";
-    });
-  }
-
-  // load tasks for this project
-  loadTasks().then(() => {
-    // enforce per-task UI: members can only toggle subtask completion; they cannot add/delete subtasks or update task status
-    if (!["admin", "project_admin"].includes(role)) {
-      tasksDiv
-        .querySelectorAll(".addSub")
-        .forEach((b) => (b.style.display = "none"));
-      tasksDiv
-        .querySelectorAll(".delSub")
-        .forEach((b) => (b.style.display = "none"));
-      tasksDiv
-        .querySelectorAll(".saveTask")
-        .forEach((b) => (b.style.display = "none"));
-      tasksDiv
-        .querySelectorAll(".delTask")
-        .forEach((b) => (b.style.display = "none"));
-    }
-  });
-});
+// removed duplicate listener (logic consolidated above)
