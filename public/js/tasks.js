@@ -10,6 +10,7 @@ const cancelTaskBtn = document.getElementById("cancelTaskBtn");
 const taskMsg = document.getElementById("taskMsg");
 
 let projectId;
+let editingTaskId = null; // null = create mode, otherwise update existing task
 
 document.addEventListener("project:loaded", async (e) => {
   projectId = e.detail.projectId;
@@ -36,7 +37,9 @@ document.addEventListener("project:loaded", async (e) => {
 
     // hide per-task admin controls in the rendered list
     tasksListDiv
-      .querySelectorAll(".addSub, .delSub, .saveTask, .delTask")
+      .querySelectorAll(
+        ".addSub, .subTitle, .delSub, .saveTask, .delTask, .statusSel",
+      )
       .forEach((b) => {
         b.style.display = "none";
       });
@@ -44,12 +47,17 @@ document.addEventListener("project:loaded", async (e) => {
 });
 
 createTaskBtn.onclick = () => {
+  // open form in create mode
+  editingTaskId = null;
+  saveTaskBtn.textContent = "Create Task";
   taskForm.style.display = "block";
   taskTitle.focus();
 };
 
 cancelTaskBtn.onclick = () => {
   taskForm.style.display = "none";
+  editingTaskId = null;
+  saveTaskBtn.textContent = "Create Task";
   taskTitle.value = "";
   taskDesc.value = "";
   taskAssignee.value = "";
@@ -80,6 +88,9 @@ async function loadTasks() {
           ? "var(--primary)"
           : "var(--gray)";
 
+    const role = window.CURRENT_PROJECT_ROLE;
+    const canModify = ["admin", "project_admin"].includes(role);
+
     const el = document.createElement("div");
     el.className = "card";
     el.innerHTML = `
@@ -88,6 +99,7 @@ async function loadTasks() {
           <h3 style="margin: 0 0 4px 0;">${t.title}</h3>
           <span class="badge" style="background: ${statusColor}; color: white;">${t.status}</span>
         </div>
+        ${canModify ? `<button data-task="${t._id}" class="editTask btn btn-outline" style="font-size:12px;">Edit</button>` : ""}
       </div>
       
       <p style="color: var(--gray); margin: 8px 0;">${t.description || "No description"}</p>
@@ -163,6 +175,26 @@ async function loadTasks() {
       if (ok) loadTasks();
     };
   });
+  // edit buttons
+  tasksListDiv.querySelectorAll(".editTask").forEach((btn) => {
+    btn.onclick = async () => {
+      const taskId = btn.getAttribute("data-task");
+      // load task details and populate form
+      const { ok, data } = await api.get(
+        `/api/v1/tasks/${projectId}/t/${taskId}`,
+      );
+      if (!ok) return;
+      const t = data.task;
+      editingTaskId = taskId;
+      saveTaskBtn.textContent = "Update Task";
+      taskTitle.value = t.title || "";
+      taskDesc.value = t.description || "";
+      taskAssignee.value = t.assignee ? t.assignee._id || t.assignee : "";
+      taskFiles.value = "";
+      taskForm.style.display = "block";
+      taskTitle.focus();
+    };
+  });
   tasksListDiv.querySelectorAll(".toggleSub").forEach((btn) => {
     btn.onclick = async () => {
       const subId = btn.getAttribute("data-sub");
@@ -216,21 +248,38 @@ saveTaskBtn.onclick = async () => {
     fd.append("assignee", taskAssignee.value.trim());
   for (const f of taskFiles.files) fd.append("attachments", f);
 
-  const { ok, error } = await api.upload(`/api/v1/tasks/${projectId}`, fd);
+  let res;
+  if (editingTaskId) {
+    // update existing task
+    res = await api.request(`/api/v1/tasks/${projectId}/t/${editingTaskId}`, {
+      method: "PUT",
+      formData: fd,
+    });
+  } else {
+    res = await api.upload(`/api/v1/tasks/${projectId}`, fd);
+  }
+
+  const { ok, error } = res;
   if (ok) {
-    taskMsg.textContent = "Task created successfully!";
+    taskMsg.textContent = editingTaskId
+      ? "Task updated successfully!"
+      : "Task created successfully!";
     taskMsg.style.color = "var(--success)";
     taskTitle.value = "";
     taskDesc.value = "";
     taskAssignee.value = "";
     taskFiles.value = "";
     taskForm.style.display = "none";
+    editingTaskId = null;
+    saveTaskBtn.textContent = "Create Task";
     setTimeout(() => {
       taskMsg.textContent = "";
       loadTasks();
     }, 500);
   } else {
-    taskMsg.textContent = error?.message || "Error creating task";
+    taskMsg.textContent =
+      error?.message ||
+      (editingTaskId ? "Error updating task" : "Error creating task");
     taskMsg.style.color = "var(--danger)";
   }
 };
