@@ -13,8 +13,8 @@ document.addEventListener("project:loaded", async (e) => {
   projectId = e.detail.projectId;
   const role = e.detail.role;
 
-  // Member management allowed for project admins and above
-  if (role === "admin" || role === "project_admin") {
+  // Member management allowed only for system admins
+  if (window.CURRENT_USER && window.CURRENT_USER.role === "admin") {
     addMemberBtn.style.display = "inline-block";
   }
 
@@ -51,32 +51,39 @@ async function loadMembers() {
   (data.members || []).forEach((m) => {
     const el = document.createElement("div");
     el.className = "card";
+    // build controls only if current user is system admin
+    const adminControls = (window.CURRENT_USER && window.CURRENT_USER.role === "admin")
+      ? `<div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <button class="mkAdmin btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Admin</button>
+          <button class="mkProj btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Project Admin</button>
+          <button class="mkMem btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Member</button>
+          <button class="rm btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px; color: var(--danger);">Remove</button>
+        </div>`
+      : "";
+
     el.innerHTML = `
       <div style="margin-bottom: 12px;">
         <h3 style="margin: 0 0 4px 0;">${m.user.name}</h3>
         <p style="color: var(--gray); font-size: 12px; margin: 0 0 8px 0;">${m.user.email}</p>
         <span class="badge" style="background: var(--primary); color: white;">${m.role}</span>
       </div>
-      <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-        <button class="mkAdmin btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Admin</button>
-        <button class="mkProj btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Project Admin</button>
-        <button class="mkMem btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Member</button>
-        <button class="rm btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px; color: var(--danger);">Remove</button>
-      </div>
+      ${adminControls}
     `;
     membersListDiv.appendChild(el);
   });
 
-  membersListDiv
-    .querySelectorAll(".mkAdmin")
-    .forEach((btn) => roleUpdate(btn, "admin"));
-  membersListDiv
-    .querySelectorAll(".mkProj")
-    .forEach((btn) => roleUpdate(btn, "project_admin"));
-  membersListDiv
-    .querySelectorAll(".mkMem")
-    .forEach((btn) => roleUpdate(btn, "member"));
-  membersListDiv.querySelectorAll(".rm").forEach((btn) => {
+  // hide role-change/remove buttons for non-admins
+  if (window.CURRENT_USER && window.CURRENT_USER.role === "admin") {
+    membersListDiv
+      .querySelectorAll(".mkAdmin")
+      .forEach((btn) => roleUpdate(btn, "admin"));
+    membersListDiv
+      .querySelectorAll(".mkProj")
+      .forEach((btn) => roleUpdate(btn, "project_admin"));
+    membersListDiv
+      .querySelectorAll(".mkMem")
+      .forEach((btn) => roleUpdate(btn, "member"));
+    membersListDiv.querySelectorAll(".rm").forEach((btn) => {
     btn.onclick = async () => {
       const userId = btn.getAttribute("data-id");
       const { ok } = await api.del(
