@@ -39,6 +39,8 @@ async function initDashboard() {
   // Display user info
   if (user) {
     console.log("Dashboard: User from localStorage:", user.name);
+    // expose globally for other modules
+    window.CURRENT_USER = user;
     userInfo.textContent = `${user.name} (${user.role})`;
     // Only show create button for system admins
     if (user.role === "admin") {
