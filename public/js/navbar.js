@@ -2,7 +2,7 @@
 function initNavbar() {
   const navLinks = document.querySelector(".nav-links");
   const navRight = document.querySelector(".nav-right");
-  
+
   if (!navLinks || !navRight) {
     console.warn("Navbar elements not found");
     return;
@@ -11,7 +11,7 @@ function initNavbar() {
   // Get auth state from localStorage (instant, no API call)
   const token = localStorage.getItem("pc_access");
   const userJson = localStorage.getItem("pc_user");
-  
+
   let user = null;
   if (token && userJson) {
     try {
@@ -22,6 +22,8 @@ function initNavbar() {
   }
 
   if (user && token) {
+    // store globally for other modules
+    window.CURRENT_USER = user;
     // User is authenticated - show dashboard nav
     navLinks.innerHTML = `
       <a href="/">Home</a>
@@ -29,11 +31,11 @@ function initNavbar() {
       <a href="/dashboard.html">Projects</a>
     `;
     navRight.innerHTML = `
-      <span style="color:var(--gray); margin-right:12px;">${user.name || 'User'} (${user.role || 'member'})</span>
+      <span style="color:var(--gray); margin-right:12px;">${user.name || "User"} (${user.role || "member"})</span>
       <a href="/dashboard.html" class="btn btn-outline">Dashboard</a>
       <button id="logoutBtn" class="btn btn-outline">Logout</button>
     `;
-    
+
     // Setup logout
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) {
@@ -61,8 +63,8 @@ function initNavbar() {
 }
 
 // Call immediately when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initNavbar);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initNavbar);
 } else {
   initNavbar();
 }
