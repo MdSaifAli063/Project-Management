@@ -6,11 +6,15 @@ const { TaskStatus, Roles } = require("../utils/constants");
 const { body, param } = require("express-validator");
 const validate = require("../middleware/validate");
 
-async function getProjectRole(projectId, userId) {
+async function getProjectRole(projectId, req) {
+  // system admin automatically considered project admin-level
+  if (req.user && req.user.role === Roles.ADMIN) {
+    return { role: Roles.ADMIN };
+  }
   const project = await Project.findById(projectId).lean();
   if (!project) return null;
   const mem = project.members.find(
-    (m) => m.user.toString() === userId.toString(),
+    (m) => m.user.toString() === req.user.userId.toString(),
   );
   return mem ? { role: mem.role } : null;
 }
@@ -25,7 +29,7 @@ exports.validateCreateTask = [
 
 exports.listTasks = async (req, res, next) => {
   try {
-    const role = await getProjectRole(req.params.projectId, req.user.userId);
+    const role = await getProjectRole(req.params.projectId, req);
     if (!role)
       return res
         .status(404)
@@ -43,7 +47,7 @@ exports.createTask = [
   upload.array("attachments", 5),
   async (req, res, next) => {
     try {
-      const pr = await getProjectRole(req.params.projectId, req.user.userId);
+      const pr = await getProjectRole(req.params.projectId, req);
       if (!pr)
         return res
           .status(404)
@@ -74,7 +78,7 @@ exports.createTask = [
 
 exports.getTask = async (req, res, next) => {
   try {
-    const role = await getProjectRole(req.params.projectId, req.user.userId);
+    const role = await getProjectRole(req.params.projectId, req);
     if (!role)
       return res
         .status(404)
@@ -99,7 +103,7 @@ exports.updateTask = [
   upload.array("attachments", 5),
   async (req, res, next) => {
     try {
-      const pr = await getProjectRole(req.params.projectId, req.user.userId);
+      const pr = await getProjectRole(req.params.projectId, req);
       if (!pr)
         return res
           .status(404)
@@ -144,7 +148,7 @@ exports.updateTask = [
 
 exports.deleteTask = async (req, res, next) => {
   try {
-    const pr = await getProjectRole(req.params.projectId, req.user.userId);
+    const pr = await getProjectRole(req.params.projectId, req);
     if (!pr)
       return res
         .status(404)
@@ -168,7 +172,7 @@ exports.deleteTask = async (req, res, next) => {
 
 exports.createSubtask = async (req, res, next) => {
   try {
-    const pr = await getProjectRole(req.params.projectId, req.user.userId);
+    const pr = await getProjectRole(req.params.projectId, req);
     if (!pr)
       return res
         .status(404)
@@ -201,16 +205,21 @@ exports.createSubtask = async (req, res, next) => {
 
 exports.updateSubtask = async (req, res, next) => {
   try {
-    const role = await getProjectRoleBySubtask(
-      req.params.subTaskId,
-      req.user.userId,
-    );
+    const role = await getProjectRoleBySubtask(req.params.subTaskId, req);
     if (!role)
       return res
         .status(404)
         .json({ success: false, message: "Subtask not found" });
 
     const { title, isCompleted } = req.body;
+    // restrict renaming to admin/project_admin
+    if (
+      title !== undefined &&
+      ![Roles.ADMIN, Roles.PROJECT_ADMIN].includes(role.role)
+    ) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
     const task = await Task.findOne({ "subtasks._id": req.params.subTaskId });
     const st = task.subtasks.id(req.params.subTaskId);
     if (title !== undefined) st.title = title;
@@ -227,23 +236,26 @@ exports.updateSubtask = async (req, res, next) => {
   }
 };
 
-async function getProjectRoleBySubtask(subTaskId, userId) {
+async function getProjectRoleBySubtask(subTaskId, req) {
+  // global admins can operate on any subtask
+  if (req.user && req.user.role === Roles.ADMIN) {
+    return { role: Roles.ADMIN };
+  }
   const task = await Task.findOne({ "subtasks._id": subTaskId }).populate(
     "project",
   );
   if (!task) return null;
   const prj = await Project.findById(task.project);
-  const mem = prj.members.find((m) => m.user.toString() === userId.toString());
+  const mem = prj.members.find(
+    (m) => m.user.toString() === req.user.userId.toString(),
+  );
   if (!mem) return null;
   return { role: mem.role };
 }
 
 exports.deleteSubtask = async (req, res, next) => {
   try {
-    const role = await getProjectRoleBySubtask(
-      req.params.subTaskId,
-      req.user.userId,
-    );
+    const role = await getProjectRoleBySubtask(req.params.subTaskId, req);
     if (!role)
       return res
         .status(404)
