@@ -22,6 +22,8 @@ async function loadProject() {
     return;
   }
 
+  // expose user globally for other modules
+  window.CURRENT_USER = user;
   userInfo.textContent = `${user.name} (${user.role})`;
 
   const { ok, data } = await api.get(`/api/v1/projects/${projectId}`);
@@ -46,6 +48,11 @@ async function loadProject() {
     role = null;
   }
 
+  // global admins should automatically be treated as having admin privileges
+  if (user.role === "admin") {
+    role = "admin";
+  }
+
   // Display role badges
   projRole.textContent = `Your Role: ${role || "Viewer"}`;
   projRole.style.background =
@@ -63,6 +70,41 @@ async function loadProject() {
     detail: { project: p, role, projectId },
   });
   document.dispatchEvent(ev);
+
+  // show edit/delete controls to global admins
+  if (user.role === "admin") {
+    const editBtn = document.getElementById("editProjBtn");
+    const delBtn = document.getElementById("deleteProjBtn");
+    if (editBtn) {
+      editBtn.style.display = "inline-block";
+      editBtn.onclick = async () => {
+        const newName = prompt("New project name", projectName.textContent);
+        if (!newName) return;
+        const newDesc = prompt(
+          "New description (leave blank to keep)",
+          projectDesc.textContent,
+        );
+        const { ok } = await api.put(`/api/v1/projects/${projectId}`, {
+          name: newName,
+          description: newDesc || "",
+        });
+        if (ok) {
+          loadProject();
+        } else {
+          alert("Failed to update project");
+        }
+      };
+    }
+    if (delBtn) {
+      delBtn.style.display = "inline-block";
+      delBtn.onclick = async () => {
+        if (!confirm("Are you sure you want to delete this project?")) return;
+        const { ok } = await api.del(`/api/v1/projects/${projectId}`);
+        if (ok) window.location.href = "/dashboard.html";
+        else alert("Failed to delete project");
+      };
+    }
+  }
 }
 
 loadProject();
