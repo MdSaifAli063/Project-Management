@@ -4,7 +4,11 @@ const { Roles } = require("../utils/constants");
 const { body, param } = require("express-validator");
 const validate = require("../middleware/validate");
 
-async function isProjectMember(projectId, userId) {
+async function isProjectMember(projectId, userId, userRole) {
+  // system admins implicitly have access to every project
+  if (userRole === Roles.ADMIN) {
+    return { project: null, role: Roles.ADMIN };
+  }
   const project = await Project.findById(projectId).lean();
   if (!project) return null;
   const mem = project.members.find(
@@ -21,16 +25,16 @@ exports.validateCreate = [
 
 exports.create = async (req, res, next) => {
   try {
-    // Allow any authenticated user to create a project.
-    // System admins will be added as system `admin` in the project; others become `project_admin` for their project.
+    // only system administrators can create new projects
     const me = await User.findById(req.user.userId);
-    const isSystemAdmin = me.role === Roles.ADMIN;
+    if (me.role !== Roles.ADMIN)
+      return res.status(403).json({ success: false, message: "Forbidden" });
+
     const { name, description } = req.body;
-    const initialRole = isSystemAdmin ? Roles.ADMIN : Roles.PROJECT_ADMIN;
     const project = await Project.create({
       name,
       description,
-      members: [{ user: me._id, role: initialRole }],
+      members: [{ user: me._id, role: Roles.ADMIN }],
       createdBy: me._id,
     });
     res.status(201).json({ success: true, project });
@@ -41,9 +45,16 @@ exports.create = async (req, res, next) => {
 
 exports.list = async (req, res, next) => {
   try {
-    const projects = await Project.find({ "members.user": req.user.userId })
-      .select("name description members")
-      .lean();
+    let projects;
+    if (req.user.role === Roles.ADMIN) {
+      projects = await Project.find({})
+        .select("name description members")
+        .lean();
+    } else {
+      projects = await Project.find({ "members.user": req.user.userId })
+        .select("name description members")
+        .lean();
+    }
 
     const formatted = projects.map((p) => ({
       _id: p._id,
@@ -59,7 +70,11 @@ exports.list = async (req, res, next) => {
 
 exports.getOne = async (req, res, next) => {
   try {
-    const access = await isProjectMember(req.params.projectId, req.user.userId);
+    const access = await isProjectMember(
+      req.params.projectId,
+      req.user.userId,
+      req.user.role,
+    );
     if (!access)
       return res
         .status(404)
@@ -120,7 +135,11 @@ exports.remove = async (req, res, next) => {
 
 exports.membersList = async (req, res, next) => {
   try {
-    const access = await isProjectMember(req.params.projectId, req.user.userId);
+    const access = await isProjectMember(
+      req.params.projectId,
+      req.user.userId,
+      req.user.role,
+    );
     if (!access)
       return res
         .status(404)
