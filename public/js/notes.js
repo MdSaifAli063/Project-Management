@@ -1,148 +1,95 @@
-const notesListDiv = document.getElementById("notes-list");
-const noteTitle = document.getElementById("noteTitle");
-const noteContent = document.getElementById("noteContent");
-const createNoteBtn = document.getElementById("createNoteBtn");
-const noteForm = document.getElementById("noteForm");
-const saveNoteBtn = document.getElementById("saveNoteBtn");
-const cancelNoteBtn = document.getElementById("cancelNoteBtn");
-const noteMsg = document.getElementById("noteMsg");
+import { request } from "./api.js";
+import { currentUser } from "./auth.js";
 
-let projectId;
-let editingNoteId = null; // null for create, note id for edit
+function qs(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
 
-document.addEventListener("project:loaded", async (e) => {
-  projectId = e.detail.projectId;
-  const role = e.detail.role;
-  const user = window.CURRENT_USER || (await api.whoami());
-
-  // Note creation allowed only for system admins
-  if (user && user.role === "admin") {
-    createNoteBtn.style.display = "inline-block";
-  }
-
-  loadNotes();
-});
-
-createNoteBtn.onclick = () => {
-  editingNoteId = null;
-  saveNoteBtn.textContent = "Create Note";
-  noteForm.style.display = "block";
-  noteTitle.focus();
-};
-
-cancelNoteBtn.onclick = () => {
-  noteForm.style.display = "none";
-  editingNoteId = null;
-  saveNoteBtn.textContent = "Create Note";
-  noteTitle.value = "";
-  noteContent.value = "";
-  noteMsg.textContent = "";
-};
+function showMessage(type, text) {
+  const msg = document.getElementById("message");
+  if (!msg) return;
+  msg.className = `msg ${type}`;
+  msg.textContent = text;
+  setTimeout(() => {
+    msg.textContent = "";
+    msg.className = "msg";
+  }, 4000);
+}
 
 async function loadNotes() {
-  const user = window.CURRENT_USER || (await api.whoami());
-  const { ok, data } = await api.get(`/api/v1/notes/${projectId}`);
-  if (!ok) {
-    notesListDiv.innerHTML =
-      "<p style='color: var(--danger);'>Failed to load notes.</p>";
-    return;
-  }
-  notesListDiv.innerHTML = "";
-
-  if (!data.notes || data.notes.length === 0) {
-    notesListDiv.innerHTML = "<p style='color: var(--gray);'>No notes yet.</p>";
-    return;
-  }
-
-  data.notes.forEach((n) => {
-    const el = document.createElement("div");
-    el.className = "card";
-    let controls = "";
-    if (user.role === "admin") {
-      controls = `
-        <button data-id="${n._id}" class="delNote btn btn-outline" style="color: var(--danger); white-space: nowrap; margin-left: 8px;">Delete</button>
-        <button data-id="${n._id}" class="editNote btn btn-outline" style="margin-left:4px; font-size:12px;">Edit</button>
-      `;
+  const projectId = qs("projectId");
+  const userResp = await currentUser();
+  const isAdmin = userResp.user && userResp.user.role === "admin";
+  const res = await request(`/notes/${projectId}`);
+  const list = document.getElementById("noteList");
+  list.innerHTML = "";
+  res.notes.forEach((n) => {
+    const li = document.createElement("li");
+    li.className = "card";
+    li.innerHTML = `<strong>${n.title}</strong><p>${n.content}</p>`;
+    if (isAdmin) {
+      const edit = document.createElement("button");
+      edit.textContent = "edit";
+      edit.className = "small";
+      edit.addEventListener("click", async () => {
+        const newTitle = prompt("Title", n.title);
+        if (newTitle == null) return;
+        const newContent = prompt("Content", n.content || "");
+        try {
+          await request(`/notes/${projectId}/n/${n._id}`, {
+            method: "PUT",
+            body: JSON.stringify({ title: newTitle, content: newContent }),
+          });
+          showMessage("success", "Note updated");
+          await loadNotes();
+        } catch (err) {
+          showMessage("error", err.message || "Update failed");
+        }
+      });
+      li.appendChild(edit);
+      const del = document.createElement("button");
+      del.textContent = "delete";
+      del.className = "small";
+      del.addEventListener("click", async () => {
+        if (!confirm("Delete note?")) return;
+        try {
+          await request(`/notes/${projectId}/n/${n._id}`, { method: "DELETE" });
+          showMessage("success", "Note deleted");
+          await loadNotes();
+        } catch (err) {
+          showMessage("error", err.message || "Delete failed");
+        }
+      });
+      li.appendChild(del);
     }
-    el.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: start;">
-        <div style="flex: 1;">
-          <h3 style="margin: 0 0 8px 0;">${n.title}</h3>
-          <p style="color: var(--gray); margin: 0;">${n.content || "No content"}</p>
-        </div>
-        ${controls}
-      </div>
-    `;
-    notesListDiv.appendChild(el);
-  });
-
-  // bind note actions
-  notesListDiv.querySelectorAll(".delNote").forEach((btn) => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute("data-id");
-      const { ok } = await api.del(`/api/v1/notes/${projectId}/n/${id}`);
-      if (ok) loadNotes();
-    };
-  });
-
-  notesListDiv.querySelectorAll(".editNote").forEach((btn) => {
-    btn.onclick = async () => {
-      const id = btn.getAttribute("data-id");
-      const { ok, data } = await api.get(`/api/v1/notes/${projectId}/n/${id}`);
-      if (!ok) return;
-      const note = data.note;
-      editingNoteId = id;
-      saveNoteBtn.textContent = "Update Note";
-      noteTitle.value = note.title;
-      noteContent.value = note.content || "";
-      noteForm.style.display = "block";
-      noteTitle.focus();
-    };
+    list.appendChild(li);
   });
 }
 
-saveNoteBtn.onclick = async () => {
-  const title = noteTitle.value.trim();
-  const content = noteContent.value.trim();
-
-  if (!title) {
-    noteMsg.textContent = "Note title is required";
-    noteMsg.style.color = "var(--danger)";
-    return;
-  }
-
-  let res;
-  if (editingNoteId) {
-    res = await api.put(`/api/v1/notes/${projectId}/n/${editingNoteId}`, {
-      title,
-      content,
+async function init() {
+  const projectId = qs("projectId");
+  const createForm = document.getElementById("createNoteForm");
+  if (createForm) {
+    createForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("noteTitle").value;
+      const content = document.getElementById("noteContent").value;
+      try {
+        await request(`/notes/${projectId}`, {
+          method: "POST",
+          body: JSON.stringify({ title, content }),
+        });
+        showMessage("success", "Note created");
+        document.getElementById("noteTitle").value = "";
+        document.getElementById("noteContent").value = "";
+        await loadNotes();
+      } catch (err) {
+        showMessage("error", err.message || "Creation failed");
+      }
     });
-  } else {
-    res = await api.post(`/api/v1/notes/${projectId}`, {
-      title,
-      content,
-    });
   }
+  await loadNotes();
+}
 
-  const { ok, error } = res;
-  if (ok) {
-    noteMsg.textContent = editingNoteId
-      ? "Note updated successfully!"
-      : "Note created successfully!";
-    noteMsg.style.color = "var(--success)";
-    noteTitle.value = "";
-    noteContent.value = "";
-    noteForm.style.display = "none";
-    editingNoteId = null;
-    saveNoteBtn.textContent = "Create Note";
-    setTimeout(() => {
-      noteMsg.textContent = "";
-      loadNotes();
-    }, 500);
-  } else {
-    noteMsg.textContent =
-      error?.message ||
-      (editingNoteId ? "Error updating note" : "Error creating note");
-    noteMsg.style.color = "var(--danger)";
-  }
-};
+init();
