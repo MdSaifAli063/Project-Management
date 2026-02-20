@@ -1,147 +1,98 @@
-const membersListDiv = document.getElementById("members-list");
-const memberEmail = document.getElementById("memEmail");
-const memberRole = document.getElementById("memRole");
-const addMemberBtn = document.getElementById("addMemberBtn");
-const memberForm = document.getElementById("memberForm");
-const saveMemberBtn = document.getElementById("saveMemberBtn");
-const cancelMemberBtn = document.getElementById("cancelMemberBtn");
-const memMsg = document.getElementById("memMsg");
+import { request } from "./api.js";
+import { currentUser } from "./auth.js";
 
-let projectId;
+function qs(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
 
-document.addEventListener("project:loaded", async (e) => {
-  projectId = e.detail.projectId;
-  const role = e.detail.role;
-
-  // Member management allowed only for system admins
-  if (window.CURRENT_USER && window.CURRENT_USER.role === "admin") {
-    addMemberBtn.style.display = "inline-block";
-  }
-
-  loadMembers();
-});
-
-addMemberBtn.onclick = () => {
-  memberForm.style.display = "block";
-  memberEmail.focus();
-};
-
-cancelMemberBtn.onclick = () => {
-  memberForm.style.display = "none";
-  memberEmail.value = "";
-  memberRole.value = "member";
-  memMsg.textContent = "";
-};
+function showMessage(type, text) {
+  const msg = document.getElementById("message");
+  if (!msg) return;
+  msg.className = `msg ${type}`;
+  msg.textContent = text;
+  setTimeout(() => {
+    msg.textContent = "";
+    msg.className = "msg";
+  }, 4000);
+}
 
 async function loadMembers() {
-  const { ok, data } = await api.get(`/api/v1/projects/${projectId}/members`);
-  if (!ok) {
-    membersListDiv.innerHTML =
-      "<p style='color: var(--danger);'>Failed to load members.</p>";
-    return;
-  }
-  membersListDiv.innerHTML = "";
-
-  if (!data.members || data.members.length === 0) {
-    membersListDiv.innerHTML =
-      "<p style='color: var(--gray);'>No members yet.</p>";
-    return;
-  }
-
-  (data.members || []).forEach((m) => {
-    const el = document.createElement("div");
-    el.className = "card";
-    // build controls only if current user is system admin
-    const adminControls = (window.CURRENT_USER && window.CURRENT_USER.role === "admin")
-      ? `<div style="display: flex; gap: 4px; flex-wrap: wrap;">
-          <button class="mkAdmin btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Admin</button>
-          <button class="mkProj btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Project Admin</button>
-          <button class="mkMem btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px;">Make Member</button>
-          <button class="rm btn btn-outline" data-id="${m.user._id}" style="font-size: 11px; padding: 4px 8px; color: var(--danger);">Remove</button>
-        </div>`
-      : "";
-
-    el.innerHTML = `
-      <div style="margin-bottom: 12px;">
-        <h3 style="margin: 0 0 4px 0;">${m.user.name}</h3>
-        <p style="color: var(--gray); font-size: 12px; margin: 0 0 8px 0;">${m.user.email}</p>
-        <span class="badge" style="background: var(--primary); color: white;">${m.role}</span>
-      </div>
-      ${adminControls}
-    `;
-    membersListDiv.appendChild(el);
-  });
-
-  // hide role-change/remove buttons for non-admins
-  if (window.CURRENT_USER && window.CURRENT_USER.role === "admin") {
-    membersListDiv
-      .querySelectorAll(".mkAdmin")
-      .forEach((btn) => roleUpdate(btn, "admin"));
-    membersListDiv
-      .querySelectorAll(".mkProj")
-      .forEach((btn) => roleUpdate(btn, "project_admin"));
-    membersListDiv
-      .querySelectorAll(".mkMem")
-      .forEach((btn) => roleUpdate(btn, "member"));
-    membersListDiv.querySelectorAll(".rm").forEach((btn) => {
-    btn.onclick = async () => {
-      const userId = btn.getAttribute("data-id");
-      const { ok } = await api.del(
-        `/api/v1/projects/${projectId}/members/${userId}`,
-      );
-      if (ok) loadMembers();
-    };
+  const projectId = qs("projectId");
+  const res = await request(`/projects/${projectId}/members`);
+  const list = document.getElementById("membersList");
+  list.innerHTML = "";
+  const userResp = await currentUser();
+  const isAdmin = userResp.user && userResp.user.role === "admin";
+  res.data.forEach((m) => {
+    const li = document.createElement("li");
+    li.className = "card";
+    li.textContent = `${m.user.fullName || m.user.username || ""} (${m.role})`;
+    if (isAdmin) {
+      const select = document.createElement("select");
+      ["admin", "project_admin", "member"].forEach((r) => {
+        const opt = document.createElement("option");
+        opt.value = r;
+        opt.textContent = r;
+        if (r === m.role) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener("change", async () => {
+        try {
+          await request(`/projects/${projectId}/members/${m.user._id}`, {
+            method: "PUT",
+            body: JSON.stringify({ newRole: select.value }),
+          });
+          showMessage("success", "Role updated");
+          await loadMembers();
+        } catch (err) {
+          showMessage("error", err.message || "Role update failed");
+        }
+      });
+      li.appendChild(select);
+      const del = document.createElement("button");
+      del.textContent = "remove";
+      del.className = "small";
+      del.addEventListener("click", async () => {
+        if (!confirm("Remove this member?")) return;
+        try {
+          await request(`/projects/${projectId}/members/${m.user._id}`, {
+            method: "DELETE",
+          });
+          showMessage("success", "Member removed");
+          await loadMembers();
+        } catch (err) {
+          showMessage("error", err.message || "Remove failed");
+        }
+      });
+      li.appendChild(del);
+    }
+    list.appendChild(li);
   });
 }
 
-function roleUpdate(btn, role) {
-  btn.onclick = async () => {
-    const userId = btn.getAttribute("data-id");
-    const { ok } = await api.put(
-      `/api/v1/projects/${projectId}/members/${userId}`,
-      { role },
-    );
-    if (ok) loadMembers();
-  };
+async function init() {
+  const projectId = qs("projectId");
+  const addForm = document.getElementById("addMemberForm");
+  if (addForm) {
+    addForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("memberEmail").value;
+      const role = document.getElementById("memberRole").value;
+      try {
+        await request(`/projects/${projectId}/members`, {
+          method: "POST",
+          body: JSON.stringify({ email, role }),
+        });
+        showMessage("success", "Member added");
+        document.getElementById("memberEmail").value = "";
+        await loadMembers();
+      } catch (err) {
+        showMessage("error", err.message || "Add failed");
+      }
+    });
+  }
+  await loadMembers();
 }
 
-saveMemberBtn.onclick = async () => {
-  const email = memberEmail.value.trim();
-  const role = memberRole.value;
-
-  if (!email) {
-    memMsg.textContent = "Email is required";
-    memMsg.style.color = "var(--danger)";
-    return;
-  }
-
-  // Basic email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    memMsg.textContent = "Please enter a valid email";
-    memMsg.style.color = "var(--danger)";
-    return;
-  }
-
-  const { ok, error } = await api.post(
-    `/api/v1/projects/${projectId}/members`,
-    {
-      email,
-      role,
-    },
-  );
-  if (ok) {
-    memMsg.textContent = "Member added successfully!";
-    memMsg.style.color = "var(--success)";
-    memberEmail.value = "";
-    memberRole.value = "member";
-    memberForm.style.display = "none";
-    setTimeout(() => {
-      memMsg.textContent = "";
-      loadMembers();
-    }, 500);
-  } else {
-    memMsg.textContent = error?.message || "Error adding member";
-    memMsg.style.color = "var(--danger)";
-  }
-};
+init();
